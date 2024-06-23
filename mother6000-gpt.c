@@ -155,6 +155,11 @@ void _mark_error(const char *file, const char *func, int line) {
 void display_matrix_cascade();
 int display_prompt_screen();
 void to_upper_case(char *str);
+void display_help_screen();
+void display_system_diagnostics();
+void display_access_info(char *info);
+void display_execute_order(int order);
+void display_journal();
 
 int main() {
     // Set locale to support special characters
@@ -182,12 +187,12 @@ int main() {
     }
 
     // Call Splash Screen
-    splash(&params);
-    sleep(3);
+   splash(&params);
+   sleep(3);
 
     // Display matrix cascade
-    display_matrix_cascade();
-    sleep(4);
+   display_matrix_cascade();
+   sleep(4);
 
     // Prompt screen
     while (1) {
@@ -231,8 +236,31 @@ void display_matrix_cascade() {
     }
 }
 
+void display_screen_border() {
+    int columns = 79;
+    int rows = 23;
+    
+    for (int i = 0; i < columns; i++) {
+        mvprintw(0, i, "-");
+        mvprintw(rows, i, "-");
+    }
+
+    for (int j = 0; j <= rows; j++) {
+        if ((j == 0) || (j == rows)) {
+            mvprintw(j, 0, "+");
+            mvprintw(j, columns, "+"); 
+        } else {
+            mvprintw(j, 0, "|");
+           mvprintw(j, columns, "|");
+        }
+    }
+
+}
+
 int display_prompt_screen() {
+    int columns = 80;
     clear();
+    display_screen_border();
     char response[256];
     char *directives[] = {
         "DIRECTIVE X34J FOR SCIENCE OFFICER EYES ONLY"
@@ -243,14 +271,19 @@ int display_prompt_screen() {
     char *crew_info[] = {
         "CREW MEMBER 35: SCIENCE OFFICER, NAME: ALONSO, AGE: 34"
     };
+    int line_start = 1;
 
-    mvprintw(0, 0, "MOTHER 6000 INTERFACE\nWHAT IS YOUR DIRECTIVE:\n?");
+    mvprintw(1, line_start, "MOTHER 6000 INTERFACE");
+    for (int i = 1; i < columns -1; i++) {
+        mvprintw(2, i, "-");
+    }
+    mvprintw(3, line_start, "WHAT IS YOUR DIRECTIVE:");
+    mvprintw(4, line_start, "? ");
     refresh();
 
     echo();
     curs_set(1);
-    mvgetnstr(2, 1, response, sizeof(response) - 1);
-    curs_set(0);
+    mvgetnstr(4, line_start + 1, response, sizeof(response) - 1); curs_set(0);
     noecho();
 
     to_upper_case(response);
@@ -279,9 +312,9 @@ int display_prompt_screen() {
             mvprintw(0, 0, "NO CREW MEMBER INFO FOUND");
         }
     } else if (strcmp(response, "HELP") == 0) {
-        mvprintw(0, 0, "AVAILABLE COMMANDS:\nWHAT IS DIRECTIVE XXXX\nEXECUTE ORDER XXX\nACCESS INFO XXX\nSYSTEM DIAGNOSTIC\nHELP\nEXIT");
+          display_help_screen();
     } else if (strcmp(response, "SYSTEM DIAGNOSTIC") == 0) {
-        mvprintw(0, 0, "AIRLOCK SYSTEM: ONLINE\nSECURITY SYSTEM: ONLINE\nOXYGEN STATUS: FULL\nENGINE STATUS: STANDBY\nCOMMUNICATIONS: FUNCTIONAL\nLIFE SUPPORT: OPERATIONAL\nHULL INTEGRITY: STABLE");
+          display_system_diagnostics(); 
     } else if (strcmp(response, "EXIT") == 0) {
         return 0; // Exit command
     } else {
@@ -290,6 +323,110 @@ int display_prompt_screen() {
     refresh();
     getch();
     return 1; // Continue looping
+}
+
+
+void display_help_screen() {
+    int columns = 80;
+    int tab = 5;
+    display_screen_border();
+    mvprintw(1, 1, "AVAILABLE COMMANDS:");
+    for (int i = 1; i < columns - 1; i++) {
+        mvprintw(2, i, "-");
+    }
+    mvprintw(3, 1, "WHAT IS DIRECTIVE XXXXXX");
+    mvprintw(4, tab, "- Lookup command to access directives");
+    mvprintw(5, 1, "EXECUTE ORDER XXX");
+    mvprintw(6, tab, "- Command to perform terminal order");
+    mvprintw(7, 1, "ACCESS INFO XXX");
+    mvprintw(8, tab, "- Access Data stored in mainframe");
+    mvprintw(9, 1, "SYSTEM DIAGNOSTIC");
+    mvprintw(10, tab, " - Display ship systems and current status");
+    mvprintw(11, 1, "HELP");
+    mvprintw(12, tab, "- List all terminal commands");
+    mvprintw(22, 1, "Press RETURN for terminal...");
+}
+
+void display_system_diagnostics() {
+    int columns = 80;
+    const char *systems[] = {
+        "Airlock System",
+        "Security System",
+        "Oxygen Status",
+        "Engine Status",
+        "COMMUNICATIONS",
+        "Life Support Systems",
+        "Hull Integrity"
+    };
+    const char *statuses[] = {
+        "ONLINE",
+        "ONLINE",
+        "Full",
+        "STANDBY",
+        "OFFLINE",
+        "OPERATIONAL",
+        "STABLE"
+    };
+    const int num_systems = sizeof(systems) / sizeof(systems[0]);
+
+    display_screen_border();
+    mvprintw(1, 1, "SYSTEM DIAGNOSTICS:");
+    for (int i = 1; i < columns - 1; i++) {
+        mvprintw(2, i, "-");
+    }
+
+    for (int i = 0; i < num_systems; i++) {
+        int y = 3 + i;
+        mvprintw(y, 1, "Checking %s", systems[i]);
+        refresh();
+        
+        for (int percent = 0; percent <= 100; percent++) {
+            mvprintw(y, 15 + strlen(systems[i]), "%3d%%", percent);
+            refresh();
+            usleep(20000); // 20000 microseconds = 20 milliseconds, total of 2 seconds for 100 steps
+        }
+
+        // Clear the line to remove any leftover characters
+        move(y, 0);
+        clrtoeol();
+        
+        mvprintw(y, 1, "%s: %s", systems[i], statuses[i]);
+        refresh();
+    }
+    
+    mvprintw(22, 1, "Press RETURN for terminal...");
+}
+
+// void display_system_diagnostics() {
+    // int columns = 80;
+    // display_screen_border();
+    // mvprintw(1, 1, "SYSTEM DIAGNOSTICS:");
+    // for (int i = 1; i < columns - 1; i++) {
+        // mvprintw(2, i, "-");
+    // }
+    // mvprintw(3, 1, "Airlock System: ONLINE");
+    // mvprintw(4, 1, "Security System: ONLINE");
+    // mvprintw(5, 1, "Oxygen Status: Full");
+    // mvprintw(6, 1, "Engine Status: STANDBY");
+    // mvprintw(7, 1, "COMMUNICATIONS: OFFLINE");
+    // mvprintw(8, 1, "Life Support Systems: OPERATIONAL");
+    // mvprintw(9, 1, "Hull Integrity: STABLE");
+    // mvprintw(22, 1, "Press RETURN for terminal...");
+// }
+
+
+void display_access_info(char* info) {
+// display access info
+}
+
+
+void display_execute_order(int order) {
+// display order execution
+}
+
+
+void display_journal() {
+// display user journal
 }
 
 void to_upper_case(char *str) {
