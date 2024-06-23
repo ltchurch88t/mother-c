@@ -158,8 +158,10 @@ void to_upper_case(char *str);
 void display_help_screen();
 void display_system_diagnostics();
 void display_access_info(char *info);
-void display_execute_order(int order);
+void display_execute_order();
+void display_journal_entry(const char *filename);
 void display_journal();
+void display_directives();
 
 int main() {
     // Set locale to support special characters
@@ -187,12 +189,12 @@ int main() {
     }
 
     // Call Splash Screen
-   splash(&params);
-   sleep(3);
+   // splash(&params);
+   // sleep(3);
 
     // Display matrix cascade
-   display_matrix_cascade();
-   sleep(4);
+   // display_matrix_cascade();
+   // sleep(4);
 
     // Prompt screen
     while (1) {
@@ -290,24 +292,14 @@ int display_prompt_screen() {
 
     clear();
 
-    if (strncmp(response, "WHAT IS DIRECTIVE ", 18) == 0) {
-        char *directive = response + 18;
-        if (strcmp(directive, "X34J") == 0) {
-            mvprintw(0, 0, "DIRECTIVE %s: %s", directive, directives[0]);
-        } else {
-            mvprintw(0, 0, "NO MATCHING DIRECTIVE FOUND IN SYSTEM");
-        }
-    } else if (strncmp(response, "EXECUTE ORDER ", 14) == 0) {
-        char *order = response + 14;
-        if (strcmp(order, "101") == 0) {
-            mvprintw(0, 0, "EXECUTE ORDER %s: %s", order, execute_orders[0]);
-        } else {
-            mvprintw(0, 0, "UNABLE TO EXECUTE ORDER %s", order);
-        }
+    if (strncmp(response, "WHAT IS DIRECTIVE", 17) == 0) {
+        display_directives();
+    } else if (strncmp(response, "EXECUTE ORDER", 13) == 0) {
+        display_execute_order();
     } else if (strncmp(response, "ACCESS INFO ", 12) == 0) {
         char *info = response + 12;
         if (strcmp(info, "35") == 0) {
-            mvprintw(0, 0, "%s", crew_info[0]);
+            display_access_info(info);
         } else {
             mvprintw(0, 0, "NO CREW MEMBER INFO FOUND");
         }
@@ -317,6 +309,8 @@ int display_prompt_screen() {
           display_system_diagnostics(); 
     } else if (strcmp(response, "EXIT") == 0) {
         return 0; // Exit command
+    } else if (strcmp(response, "JOURNAL") == 0) {
+        display_journal();
     } else {
         mvprintw(0, 0, "UNKNOWN COMMAND");
     }
@@ -340,10 +334,12 @@ void display_help_screen() {
     mvprintw(6, tab, "- Command to perform terminal order");
     mvprintw(7, 1, "ACCESS INFO XXX");
     mvprintw(8, tab, "- Access Data stored in mainframe");
-    mvprintw(9, 1, "SYSTEM DIAGNOSTIC");
-    mvprintw(10, tab, " - Display ship systems and current status");
-    mvprintw(11, 1, "HELP");
-    mvprintw(12, tab, "- List all terminal commands");
+    mvprintw(9, 1, "JOURNAL");
+    mvprintw(10, tab, "- Access journal entries stores in memory");
+    mvprintw(11, 1, "SYSTEM DIAGNOSTIC");
+    mvprintw(12, tab, " - Display ship systems and current status");
+    mvprintw(13, 1, "HELP");
+    mvprintw(14, tab, "- List all terminal commands");
     mvprintw(22, 1, "Press RETURN for terminal...");
 }
 
@@ -397,37 +393,318 @@ void display_system_diagnostics() {
     mvprintw(22, 1, "Press RETURN for terminal...");
 }
 
-// void display_system_diagnostics() {
-    // int columns = 80;
-    // display_screen_border();
-    // mvprintw(1, 1, "SYSTEM DIAGNOSTICS:");
-    // for (int i = 1; i < columns - 1; i++) {
-        // mvprintw(2, i, "-");
-    // }
-    // mvprintw(3, 1, "Airlock System: ONLINE");
-    // mvprintw(4, 1, "Security System: ONLINE");
-    // mvprintw(5, 1, "Oxygen Status: Full");
-    // mvprintw(6, 1, "Engine Status: STANDBY");
-    // mvprintw(7, 1, "COMMUNICATIONS: OFFLINE");
-    // mvprintw(8, 1, "Life Support Systems: OPERATIONAL");
-    // mvprintw(9, 1, "Hull Integrity: STABLE");
-    // mvprintw(22, 1, "Press RETURN for terminal...");
-// }
+void display_access_info(char *info) {
+    char filename[256];
+    snprintf(filename, sizeof(filename), "info-%s.txt", info);
 
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        perror("fopen");
+        return;
+    }
 
-void display_access_info(char* info) {
-// display access info
+    char file_contents[4096]; // Larger buffer to handle longer files
+    size_t read_size = fread(file_contents, sizeof(char), sizeof(file_contents) - 1, fp);
+    if (read_size == 0 && ferror(fp)) {
+        perror("fread");
+        fclose(fp);
+        return;
+    }
+    file_contents[read_size] = '\0';
+    fclose(fp);
+
+    int max_lines, max_cols;
+    getmaxyx(stdscr, max_lines, max_cols);
+    int start_line = 0;
+
+    while (1) {
+        clear();
+        display_screen_border();
+        mvprintw(1, 1, "ACCESS INFO:");
+
+        // Display the visible portion of the file
+        char *line_start = file_contents;
+        for (int i = 0; i < start_line; i++) {
+            line_start = strchr(line_start, '\n');
+            if (line_start) {
+                line_start++;
+            } else {
+                line_start = file_contents + strlen(file_contents); // End of file
+                break;
+            }
+        }
+
+        char *line_end = line_start;
+        for (int i = 0; i < max_lines - 4; i++) {
+            line_end = strchr(line_end, '\n');
+            if (line_end) {
+                line_end++;
+            } else {
+                line_end = file_contents + strlen(file_contents); // End of file
+                break;
+            }
+        }
+
+        mvprintw(3, 1, "%.*s", (int)(line_end - line_start), line_start);
+
+        mvprintw(max_lines - 2, 1, "Press UP/DOWN to scroll, RETURN to exit");
+        refresh();
+
+        int ch = getch();
+        if (ch == '\n') {
+            break;
+        } else if (ch == KEY_UP && start_line > 0) {
+            start_line--;
+        } else if (ch == KEY_DOWN && line_end < file_contents + strlen(file_contents)) {
+            start_line++;
+        }
+    }
 }
 
 
-void display_execute_order(int order) {
-// display order execution
+
+struct Order {
+    const char *name;
+    const char *helper_text;
+};
+
+struct Order orders[] = {
+    {"01. Shutdown Engines", "This order will shut down all ship engines, effectively stopping all propulsion."},
+    {"02. Open Airlock", "This order will open the ship's airlock, which can be dangerous if not used properly."},
+    {"03. Close Airlock", "This order will close the ship's airlock to ensure the ship is sealed."},
+    {"04. Emergency Self Destruct", "This order will initiate the self-destruct sequence, destroying the ship."},
+};
+
+const int num_orders = sizeof(orders) / sizeof(orders[0]);
+
+
+void display_order_progress(const char *order_name) {
+    int max_lines, max_cols;
+    getmaxyx(stdscr, max_lines, max_cols);
+
+    for (int i = 0; i <= 100; i++) {
+        clear();
+        mvprintw(max_lines / 2, (max_cols - strlen(order_name)) / 2, "%s", order_name);
+        mvprintw(max_lines / 2 + 1, (max_cols - 20) / 2, "Progress: %3d%%", i);
+        refresh();
+        usleep(20000); // 20 milliseconds, total of 2 seconds for 100 steps
+    }
+
+    clear();
+    mvprintw(max_lines / 2, (max_cols - 20) / 2, "Order executed successfully!");
+    refresh();
+    sleep(2); // Display success message for 2 seconds
 }
 
+
+void display_execute_order() {
+    int selected = 0;
+
+    while (1) {
+        clear();
+        display_screen_border();
+        mvprintw(1, 1, "EXECUTE ORDER:");
+
+        for (int i = 0; i < num_orders; i++) {
+            if (i == selected) {
+                attron(A_REVERSE);
+                mvprintw(3 + i, 1, "%s", orders[i].name);
+                attroff(A_REVERSE);
+            } else {
+                mvprintw(3 + i, 1, "%s", orders[i].name);
+            }
+        }
+
+        mvprintw(15, 1, "HELPER TEXT:");
+        mvprintw(16, 1, "%s", orders[selected].helper_text);
+
+        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, Q to exit");
+        refresh();
+
+        int ch = getch();
+        if (ch == '\n') {
+            display_order_progress(orders[selected].name);
+        } else if (ch == KEY_UP && selected > 0) {
+            selected--;
+        } else if (ch == KEY_DOWN && selected < num_orders - 1) {
+            selected++;
+        } else if (ch == 'q' || ch == 'Q') {
+            break;
+        }
+    }
+}
+
+
+
+void display_journal_entry(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        perror("fopen");
+        return;
+    }
+
+    char file_contents[4096];
+    size_t read_size = fread(file_contents, sizeof(char), sizeof(file_contents) - 1, fp);
+    if (read_size == 0 && ferror(fp)) {
+        perror("fread");
+        fclose(fp);
+        return;
+    }
+    file_contents[read_size] = '\0';
+    fclose(fp);
+
+    int max_lines, max_cols;
+    getmaxyx(stdscr, max_lines, max_cols);
+    int start_line = 0;
+
+    while (1) {
+        clear();
+        display_screen_border();
+        mvprintw(1, 1, "JOURNAL ENTRY:");
+
+        char *line_start = file_contents;
+        for (int i = 0; i < start_line; i++) {
+            line_start = strchr(line_start, '\n');
+            if (line_start) {
+                line_start++;
+            } else {
+                line_start = file_contents + strlen(file_contents);
+                break;
+            }
+        }
+
+        char *line_end = line_start;
+        for (int i = 0; i < max_lines - 4; i++) {
+            line_end = strchr(line_end, '\n');
+            if (line_end) {
+                line_end++;
+            } else {
+                line_end = file_contents + strlen(file_contents);
+                break;
+            }
+        }
+
+        mvprintw(3, 1, "%.*s", (int)(line_end - line_start), line_start);
+
+        mvprintw(max_lines - 2, 1, "Press UP/DOWN to scroll, RETURN to exit");
+        refresh();
+
+        int ch = getch();
+        if (ch == '\n') {
+            break;
+        } else if (ch == KEY_UP && start_line > 0) {
+            start_line--;
+        } else if (ch == KEY_DOWN && line_end < file_contents + strlen(file_contents)) {
+            start_line++;
+        }
+    }
+}
 
 void display_journal() {
-// display user journal
+    const char *entries[] = {
+        "1. Entry 1: First Contact",
+        "2. Entry 2: Alien Encounter",
+        "3. Entry 3: System Malfunction"
+    };
+    const char *files[] = {
+        "etc/journal1.txt",
+        "etc/journal2.txt",
+        "etc/journal3.txt"
+    };
+    const int num_entries = sizeof(entries) / sizeof(entries[0]);
+
+    while (1) {
+        clear();
+        display_screen_border();
+        mvprintw(1, 1, "JOURNAL ENTRIES:");
+
+        for (int i = 0; i < num_entries; i++) {
+            mvprintw(3 + i, 1, "%s", entries[i]);
+        }
+
+        mvprintw(22, 1, "Press number key (1-3) to select, Q to exit");
+        refresh();
+
+        int ch = getch();
+        if (ch == '1') {
+            display_journal_entry(files[0]);
+        } else if (ch == '2') {
+            display_journal_entry(files[1]);
+        } else if (ch == '3') {
+            display_journal_entry(files[2]);
+        } else if (ch == 'q' || ch == 'Q') {
+            break;
+        }
+    }
 }
+
+struct Directive {
+    const char *name;
+    const char *details;
+};
+
+struct Directive directives[] = {
+    {"Directive X34J", "This directive is for science officer eyes only. It contains sensitive information regarding research protocols and findings."},
+    {"Directive Y12K", "This directive outlines the emergency evacuation procedures for the entire crew. Follow the steps precisely to ensure safety."},
+    {"Directive Z45M", "This directive details the maintenance routines for critical ship systems. Ensure compliance to avoid malfunctions."},
+};
+
+const int num_directives = sizeof(directives) / sizeof(directives[0]);
+
+void display_directive_details(const char *directive_details) {
+    int max_lines, max_cols;
+    getmaxyx(stdscr, max_lines, max_cols);
+
+    clear();
+    display_screen_border();
+    mvprintw(1, 1, "DIRECTIVE DETAILS:");
+    mvprintw(3, 1, "%s", directive_details);
+    mvprintw(max_lines - 2, 1, "Press RETURN to go back");
+    refresh();
+    
+    getch(); // Wait for the user to press a key
+}
+
+
+void display_directives() {
+    int selected = 0;
+
+    while (1) {
+        clear();
+        display_screen_border();
+        mvprintw(1, 1, "DIRECTIVES:");
+
+        for (int i = 0; i < num_directives; i++) {
+            if (i == selected) {
+                attron(A_REVERSE);
+                mvprintw(3 + i, 1, "%s", directives[i].name);
+                attroff(A_REVERSE);
+            } else {
+                mvprintw(3 + i, 1, "%s", directives[i].name);
+            }
+        }
+
+        mvprintw(15, 1, "DETAILS:");
+        mvprintw(16, 1, "%s", directives[selected].details);
+
+        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, Q to exit");
+        refresh();
+
+        int ch = getch();
+        if (ch == '\n') {
+            display_directive_details(directives[selected].details);
+        } else if (ch == KEY_UP && selected > 0) {
+            selected--;
+        } else if (ch == KEY_DOWN && selected < num_directives - 1) {
+            selected++;
+        } else if (ch == 'q' || ch == 'Q') {
+            break;
+        }
+    }
+}
+
+
+
 
 void to_upper_case(char *str) {
     for (int i = 0; str[i]; i++) {
