@@ -1,7 +1,9 @@
 #include <ncurses.h>
-#include <unistd.h> // Add this include for usleep
+#include <time.h>
 #include "alien-console.h"
 
+
+int nanosleep(const struct timespec *req, struct timespec *rem);
 
 void display_screen_border(void) {
     int rows, cols;
@@ -22,25 +24,7 @@ void display_screen_border(void) {
         }
     }
 }
-// void display_screen_border(void) {
-    // int columns = 79;
-    // int rows = 23;
-//
-    // for (int i = 0; i < columns; i++) {
-        // mvprintw(0, i, "-");
-        // mvprintw(rows, i, "-");
-    // }
-//
-    // for (int j = 0; j <= rows; j++) {
-        // if ((j == 0) || (j == rows)) {
-            // mvprintw(j, 0, "+");
-            // mvprintw(j, columns, "+");
-        // } else {
-            // mvprintw(j, 0, "|");
-            // mvprintw(j, columns, "|");
-        // }
-    // }
-// }
+
 
 void display_help_screen(void) {
     int rows, cols;
@@ -63,7 +47,7 @@ void display_help_screen(void) {
     mvprintw(12, tab, "- Display ship systems and current status");
     mvprintw(13, 1, "HELP");
     mvprintw(14, tab, "- List all terminal commands");
-    mvprintw(22, 1, "Press RETURN for terminal...");
+    mvprintw(rows - 2, 1, "Press RETURN for terminal...");
 }
 
 void display_system_diagnostics(void) {
@@ -89,6 +73,10 @@ void display_system_diagnostics(void) {
     };
     const int num_systems = sizeof(systems) / sizeof(systems[0]);
 
+    struct timespec ts;
+    ts.tv_sec = 0;           // 0 seconds
+    ts.tv_nsec = 20000000L;   // 5000 microseconds (5 milliseconds) in nanoseconds
+
     display_screen_border();
     mvprintw(1, 1, "SYSTEM DIAGNOSTICS:");
     for (int i = 1; i < cols - 1; i++) {
@@ -103,7 +91,7 @@ void display_system_diagnostics(void) {
         for (int percent = 0; percent <= 100; percent++) {
             mvprintw(y, 15 + strlen(systems[i]), "%3d%%", percent);
             refresh();
-            usleep(20000); // 20000 microseconds = 20 milliseconds, total of 2 seconds for 100 steps
+            nanosleep(&ts, NULL); // 20000 microseconds = 20 milliseconds, total of 2 seconds for 100 steps
         }
 
         // Clear the line to remove any leftover characters
@@ -114,6 +102,6 @@ void display_system_diagnostics(void) {
         refresh();
     }
     
-    mvprintw(22, 1, "Press RETURN for terminal...");
+    mvprintw(rows - 2, 1, "Press RETURN for terminal...");
 }
 

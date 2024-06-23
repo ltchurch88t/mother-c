@@ -1,19 +1,7 @@
 #include <ncurses.h>
 #include <string.h>
 #include "alien-console.h"
-
-struct Directive {
-    const char *name;
-    const char *details;
-};
-
-struct Directive directives[] = {
-    {"Directive X34J", "This directive is for science officer eyes only. Enter code for further details."},
-    {"Directive Y12K", "This directive outlines the emergency evacuation procedures for the entire crew. Follow the steps precisely to ensure safety."},
-    {"Directive Z45M", "This directive details the maintenance routines for critical ship systems. Ensure compliance to avoid malfunctions."},
-};
-
-const int num_directives = sizeof(directives) / sizeof(directives[0]);
+#include "config.h"
 
 void display_override_details(void) {
     const char *override_details = "This is the additional information for Directive X34J.";
@@ -92,7 +80,7 @@ void display_directives(void) {
             }
         }
 
-        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, Q to exit");
+        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, qq to exit");
         refresh();
 
         int ch = getch();

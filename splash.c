@@ -4,11 +4,12 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-#include <time.h>
+#include <time.h> // Include nanosleep
 #include <string.h>  // Include necessary header
 #include "alien-console.h"
 
 char splash_contents[1024];
+int nanosleep(const struct timespec *req, struct timespec *rem);
 
 int max_line_width(char *splash) {
     int max_line_width = 0;

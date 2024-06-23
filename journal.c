@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "alien-console.h"
+#include "config.h"
 
 void display_journal_entry(const char *filename) {
     FILE *fp = fopen(filename, "r");
@@ -81,17 +82,6 @@ void display_journal_entry(const char *filename) {
 }
 
 void display_journal(void) {
-    const char *entries[] = {
-        "1. Entry 1: First Contact",
-        "2. Entry 2: Alien Encounter",
-        "3. Entry 3: System Malfunction"
-    };
-    const char *files[] = {
-        "etc/entries/journal1.txt",
-        "etc/entries/journal2.txt",
-        "etc/entries/journal3.txt"
-    };
-    const int num_entries = sizeof(entries) / sizeof(entries[0]);
     int selected = 0;
 
     while (1) {
@@ -99,26 +89,25 @@ void display_journal(void) {
         display_screen_border();
         mvprintw(1, 1, "JOURNAL ENTRIES:");
 
-        for (int i = 0; i < num_entries; i++) {
+        for (int i = 0; i < num_journals; i++) {
             if (i == selected) {
                 attron(A_REVERSE);
-                mvprintw(3 + i, 1, "%s", entries[i]);
+                mvprintw(3 + i, 1, "%s", journals[i].title);
                 attroff(A_REVERSE);
             } else {
-                mvprintw(3 + i, 1, "%s", entries[i]);
+                mvprintw(3 + i, 1, "%s", journals[i].title);
             }
         }
 
-        mvprintw(22, 1, "Press number key (1-3) to select, Q to exit");
+        mvprintw(22, 1, "Press number key (1-3) to select, qq to exit");
         refresh();
 
         int ch = getch();
-        if (ch == '1') {
-            display_journal_entry(files[0]);
-        } else if (ch == '2') {
-            display_journal_entry(files[1]);
-        } else if (ch == '3') {
-            display_journal_entry(files[2]);
+        if (ch >= '1' && ch <= '3') {
+            int index = ch - '1';
+            if (index < num_journals) {
+                display_journal_entry(journals[index].file);
+            }
         } else if (ch == 'q' || ch == 'Q') {
             break;
         }

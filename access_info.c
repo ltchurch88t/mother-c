@@ -3,19 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "alien-console.h"
+#include "config.h"
 
-struct AccessInfo {
-    const char *name;
-    const char *filename;
-};
-
-struct AccessInfo access_infos[] = {
-    {"Info 1: Crew Member 35", "etc/info/info-35.txt"},
-    {"Info 2: Engineering Report", "etc/info/engineering-report.txt"},
-    {"Info 3: Security Log", "etc/info/security-log.txt"}
-};
-
-const int num_access_infos = sizeof(access_infos) / sizeof(access_infos[0]);
 
 void display_access_info_content(const char *filename) {
     FILE *fp = fopen(filename, "r");
@@ -92,19 +81,19 @@ void display_access_info(void) {
         for (int i = 0; i < num_access_infos; i++) {
             if (i == selected) {
                 attron(A_REVERSE);
-                mvprintw(3 + i, 1, "%s", access_infos[i].name);
+                mvprintw(3 + i, 1, "%s", access_info[i].name);
                 attroff(A_REVERSE);
             } else {
-                mvprintw(3 + i, 1, "%s", access_infos[i].name);
+                mvprintw(3 + i, 1, "%s", access_info[i].name);
             }
         }
 
-        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, Q to exit");
+        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, qq to exit");
         refresh();
 
         int ch = getch();
         if (ch == '\n') {
-            display_access_info_content(access_infos[selected].filename);
+            display_access_info_content(access_info[selected].filename);
         } else if (ch == KEY_UP && selected > 0) {
             selected--;
         } else if (ch == KEY_DOWN && selected < num_access_infos - 1) {

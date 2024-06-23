@@ -1,37 +1,31 @@
 #include <ncurses.h>
-#include <unistd.h>
+#include <time.h>
 #include "alien-console.h"
+#include "config.h"
 
-struct Order {
-    const char *name;
-    const char *helper_text;
-};
-
-struct Order orders[] = {
-    {"01. Shutdown Engines", "This order will shut down all ship engines, effectively stopping all propulsion."},
-    {"02. Open Airlock", "This order will open the ship's airlock, which can be dangerous if not used properly."},
-    {"03. Close Airlock", "This order will close the ship's airlock to ensure the ship is sealed."},
-    {"04. Emergency Self Destruct", "This order will initiate the self-destruct sequence, destroying the ship."},
-};
-
-const int num_orders = sizeof(orders) / sizeof(orders[0]);
+int nanosleep(const struct timespec *req, struct timespec *rem);
 
 void display_order_progress(const char *order_name) {
     int max_lines, max_cols;
     getmaxyx(stdscr, max_lines, max_cols);
+
+    struct timespec ts;
+    ts.tv_sec = 0;           // 0 seconds
+    ts.tv_nsec = 20000000L;   // 5000 microseconds (5 milliseconds) in nanoseconds
+    nanosleep(&ts, NULL);
 
     for (int i = 0; i <= 100; i++) {
         clear();
         mvprintw(max_lines / 2, (max_cols - strlen(order_name)) / 2, "%s", order_name);
         mvprintw(max_lines / 2 + 1, (max_cols - 20) / 2, "Progress: %3d%%", i);
         refresh();
-        usleep(20000); // 20 milliseconds, total of 2 seconds for 100 steps
+        nanosleep(&ts, NULL); // 20 milliseconds, total of 2 seconds for 100 steps
     }
 
     clear();
     mvprintw(max_lines / 2, (max_cols - 20) / 2, "Order executed successfully!");
     refresh();
-    sleep(2); // Display success message for 2 seconds
+    nanosleep(&ts, NULL); // Display success message for 2 seconds
 }
 
 void display_execute_order(void) {
@@ -55,7 +49,7 @@ void display_execute_order(void) {
         mvprintw(15, 1, "HELPER TEXT:");
         mvprintw(16, 1, "%s", orders[selected].helper_text);
 
-        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, Q to exit");
+        mvprintw(22, 1, "Use UP/DOWN to navigate, RETURN to select, qq to exit");
         refresh();
 
         int ch = getch();

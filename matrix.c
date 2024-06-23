@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include "alien-console.h"
 
+int nanosleep(const struct timespec *req, struct timespec *rem);
+
 void display_matrix_cascade(void) {
     clear();
     srand(time(NULL));
@@ -22,6 +24,10 @@ void display_matrix_cascade(void) {
     int duration = 3; // Duration in seconds
     time_t start_time = time(NULL);
 
+    struct timespec ts;
+    ts.tv_sec = 0;           // 0 seconds
+    ts.tv_nsec = 5000000L;   // 5000 microseconds (5 milliseconds) in nanoseconds
+
     while (difftime(time(NULL), start_time) < duration) {
         clear();
         for (int i = 0; i < columns; i++) {
@@ -31,7 +37,7 @@ void display_matrix_cascade(void) {
             }
         }
         refresh();
-        usleep(50000);
+        nanosleep(&ts, NULL);
     }
 }
 
